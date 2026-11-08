@@ -1,12 +1,22 @@
+from typing import ClassVar
+
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import BaseUserManager as BUM
 from django.db import models
 
 from apps.common.models import BaseModel
 from apps.company.models import Company
+import secrets
 
 
 class BaseUserManager(BUM):
+
+    @staticmethod
+    def generate_verification_code(length=6):
+        # Generates a secure random integer string of specified length
+        # Using '9' * length gives us the maximum value (e.g., 999999)
+        # We pad with zeros in case the number starts with 0
+        return "".join(secrets.choice("0123456789") for _ in range(length))
 
     def create_user(
         self,
@@ -14,6 +24,7 @@ class BaseUserManager(BUM):
         password,
         first_name,
         last_name,
+        is_verified,
         is_active=True,
         is_superuser=False,
         is_staff=False,
@@ -23,16 +34,20 @@ class BaseUserManager(BUM):
         if not password:
             raise ValueError("Users must have password")
 
+        email = self.normalize_email(email.lower())
         user = self.model(
-            email=self.normalize_email(email.lower()),
+            email=email,
+            username=email,
             is_active=is_active,
             is_superuser=is_superuser,
             is_staff=is_staff,
             is_verified=True,
+            verification_code=self.generate_verification_code(),
         )
 
         user.set_password(password)
 
+        user.full_clean()
         user.save(using=self.db)
 
         return user
@@ -46,6 +61,7 @@ class BaseUserManager(BUM):
             is_active=True,
             is_superuser=True,
             is_staff=True,
+            is_verified=True,
         )
 
         user.is_superuser = True
@@ -69,7 +85,7 @@ class CustomUser(AbstractUser):
     objects = BaseUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name"]
+    REQUIRED_FIELDS = ["first_name", "last_name", "is_verified"]
 
     class Meta:
         permissions = [
@@ -82,7 +98,7 @@ class CustomUser(AbstractUser):
 
 class GenderType(models.TextChoices):
     MALE = "M", "Male"
-    FEMAIL = "F", "Female"
+    FEMALE = "F", "Female"
 
 
 class UserProfile(BaseModel):
@@ -92,6 +108,8 @@ class UserProfile(BaseModel):
         max_length=1, choices=GenderType.choices, default=GenderType.MALE
     )
     birthday = models.DateField()
+
+    objects: ClassVar[models.Manager["UserProfile"]] = models.Manager()
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"
