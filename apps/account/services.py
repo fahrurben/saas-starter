@@ -18,19 +18,11 @@ def send_templated_email(recipient_email, context_data):
     from_email = settings.DEFAULT_FROM_EMAIL
     to = [recipient_email]
 
-    # 1. Render the HTML content with the context dictionary
     html_content = render_to_string("emails/welcome_email.html", context_data)
-
-    # 2. Create a clean plain-text version fallback for older clients
     text_content = strip_tags(html_content)
-
-    # 3. Initialize the core multipart email
     msg = EmailMultiAlternatives(subject, text_content, from_email, to)
-
-    # 4. Attach the HTML alternative
     msg.attach_alternative(html_content, "text/html")
 
-    # 5. Send the email
     msg.send()
 
 
@@ -68,3 +60,13 @@ def register_company(
     )
 
     return user
+
+
+@transaction.atomic
+def verify_user(*, user: CustomUser, verification_code: str) -> bool:
+    if user.verification_code == verification_code:
+        user.is_verified = True
+        user.save(update_fields=["is_verified"])
+        return True
+
+    return False

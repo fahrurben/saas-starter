@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from apps.account.factories import CompanyFactory, CustomUserFactory
 from apps.account.models import CustomUser, GenderType
 
-from apps.account.services import register_company
+from apps.account.services import register_company, verify_user
 from faker import Faker
 
 
@@ -59,3 +59,12 @@ class UserServiceTests(TestCase):
             )
 
         self.assertIsInstance(context.exception, ValidationError)
+
+    def test_verify_user(self):
+        user = CustomUserFactory()
+        verification_code = user.verification_code
+
+        is_verified = verify_user(user=user, verification_code=verification_code)
+
+        self.assertTrue(is_verified)
+        self.assertTrue(user.is_verified)
