@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.html import strip_tags
 from django.utils.text import slugify
 
@@ -57,8 +58,11 @@ def register_company(
         birthday=birthday,
     )
 
+    verify_user_url = reverse(
+        "apps:accounts:verify-user", query={"verification_code": user.verification_code}
+    )
     send_templated_email(
-        user.email, {"first_name": user.first_name, "code": user.verification_code}
+        user.email, {"first_name": user.first_name, "verify_user_url": verify_user_url}
     )
 
     return user
@@ -72,3 +76,37 @@ def verify_user(*, user: CustomUser, verification_code: str) -> bool:
         return True
 
     return False
+
+
+@transaction.atomic
+def invite_user(
+    *,
+    email: str,
+    first_name: str,
+    last_name: str,
+    company: Company,
+    birthday: datetime.date,
+    gender: GenderType
+):
+    is_user_exists = CustomUser.objects.filter(email=email).exists()
+
+    if is_user_exists:
+        raise Exception("User with same email already exists")
+
+    user = CustomUser.objects.create_user(
+        email=email,
+        password=None,
+        first_name=first_name,
+        last_name=last_name,
+        is_verified=False,
+        is_active=True,
+    )
+
+    user_profile = UserProfile.objects.create(
+        user=user,
+        company=company,
+        gender=gender,
+        birthday=birthday,
+    )
+
+    return user_profile

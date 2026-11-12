@@ -1,12 +1,14 @@
+from django.shortcuts import render
+from django.views.generic import TemplateView
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.account.constant import SUCCESS_RESPONSE
-from apps.account.services import register_company
+from apps.account.models import CustomUser
+from apps.account.services import register_company, verify_user
 
 from .serializers import CustomLoginSerializer, RegisterSerializer
 
@@ -58,3 +60,27 @@ class RegisterView(APIView):
             )
 
             return Response(SUCCESS_RESPONSE)
+
+
+class VerifiyUserView(TemplateView):
+
+    def get(self, request):
+        verification_code = request.GET.get("verification_code")
+
+        user = CustomUser.objects.filter(
+            is_verified=False, verification_code=verification_code
+        ).first()
+
+        verification_status = False
+
+        if user:
+            verification_status = verify_user(
+                user=user, verification_code=verification_code
+            )
+
+        context = {
+            "user": user,
+            "verification_status": verification_status,
+        }
+
+        return render(request, "verify_user.html", context)

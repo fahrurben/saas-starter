@@ -31,8 +31,6 @@ class BaseUserManager(BUM):
     ):
         if not email:
             raise ValueError("Users must have an email address")
-        if not password:
-            raise ValueError("Users must have password")
 
         email = self.normalize_email(email.lower())
         user = self.model(
@@ -41,7 +39,7 @@ class BaseUserManager(BUM):
             is_active=is_active,
             is_superuser=is_superuser,
             is_staff=is_staff,
-            is_verified=True,
+            is_verified=is_verified,
             verification_code=self.generate_verification_code(),
         )
 
