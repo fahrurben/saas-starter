@@ -1,11 +1,12 @@
 import datetime
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from django.conf import settings
+from django.utils.text import slugify
 
-from django.db import transaction
 from apps.account.models import CustomUser, GenderType, UserProfile
 from apps.company.models import Company
 
@@ -46,7 +47,8 @@ def register_company(
         is_active=True,
     )
 
-    company = Company.objects.create(name=company_name)
+    subdomain = slugify(company_name)
+    company = Company.objects.create(name=company_name, subdomain=subdomain)
 
     UserProfile.objects.create(
         user=user,

@@ -1,4 +1,5 @@
 import factory
+import datetime
 
 from .models import Company, CustomUser, UserProfile, GenderType
 
@@ -17,6 +18,7 @@ class CustomUserFactory(factory.django.DjangoModelFactory):
 
     email = factory.Sequence(lambda n: f"user_{n}@test.com")
     username = factory.LazyAttribute(lambda o: o.email)
+    password = "secret123"
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     is_verified = True
@@ -25,9 +27,7 @@ class CustomUserFactory(factory.django.DjangoModelFactory):
     # Properly hash the password after the user instance is initialized
     @factory.post_generation
     def password(self, create, extracted, **kwargs):
-        password_to_set = extracted or factory.Faker("password").evaluate(
-            None, None, {"locale": None}
-        )
+        password_to_set = extracted
         if password_to_set:
             self.set_password(password_to_set)
             if create:
@@ -40,4 +40,5 @@ class UserProfileFactory(factory.django.DjangoModelFactory):
 
     user = factory.SubFactory(CustomUserFactory)
     company = factory.SubFactory(CompanyFactory)
+    birthday = datetime.date(1990, 1, 1)
     gender = GenderType.MALE

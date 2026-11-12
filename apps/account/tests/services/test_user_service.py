@@ -1,70 +1,70 @@
 import datetime
 
-from django.test import TestCase
-from django.db.utils import IntegrityError
+import pytest
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
 from apps.account.factories import CompanyFactory, CustomUserFactory
 from apps.account.models import CustomUser, GenderType
-
 from apps.account.services import register_company, verify_user
-from faker import Faker
 
 
-class UserServiceTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.faker = Faker()
+@pytest.mark.django_db
+def test_register_company(faker):
+    register_company(
+        email=faker.email(),
+        password="secret123",
+        first_name=faker.first_name(),
+        last_name=faker.last_name(),
+        company_name=faker.name(),
+        birthday=datetime.date(1990, 1, 1),
+        gender=GenderType.MALE,
+    )
 
-    def test_register_company(self):
+    assert CustomUser.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_register_existing_company(faker):
+    existing_company = CompanyFactory()
+    with pytest.raises(Exception) as context:
         register_company(
-            email=self.faker.email(),
-            password="secret123",
-            first_name=self.faker.first_name(),
-            last_name=self.faker.last_name(),
-            company_name=self.faker.name(),
+            email=faker.email(),
+            password=faker.password(),
+            first_name=faker.first_name(),
+            last_name=faker.last_name(),
+            company_name=existing_company.name,
             birthday=datetime.date(1990, 1, 1),
             gender=GenderType.MALE,
         )
 
-        self.assertEqual(1, CustomUser.objects.count())
+    assert isinstance(context.value, IntegrityError)
 
-    def test_register_existing_company(self):
-        existing_company = CompanyFactory()
-        with self.assertRaises(Exception) as context:
-            register_company(
-                email=self.faker.email(),
-                password=self.faker.password(),
-                first_name=self.faker.first_name(),
-                last_name=self.faker.last_name(),
-                company_name=existing_company.name,
-                birthday=datetime.date(1990, 1, 1),
-                gender=GenderType.MALE,
-            )
 
-        self.assertIsInstance(context.exception, IntegrityError)
+@pytest.mark.django_db
+def test_register_existing_email(faker):
+    existing_user = CustomUserFactory()
 
-    def test_register_existing_email(self):
-        existing_user = CustomUserFactory()
+    with pytest.raises(Exception) as context:
+        register_company(
+            email=existing_user.email,
+            password=faker.password(),
+            first_name=faker.first_name(),
+            last_name=faker.last_name(),
+            company_name=faker.name(),
+            birthday=datetime.date(1990, 1, 1),
+            gender=GenderType.MALE,
+        )
 
-        with self.assertRaises(Exception) as context:
-            register_company(
-                email=existing_user.email,
-                password=self.faker.password(),
-                first_name=self.faker.first_name(),
-                last_name=self.faker.last_name(),
-                company_name=self.faker.name(),
-                birthday=datetime.date(1990, 1, 1),
-                gender=GenderType.MALE,
-            )
+    assert isinstance(context.value, ValidationError)
 
-        self.assertIsInstance(context.exception, ValidationError)
 
-    def test_verify_user(self):
-        user = CustomUserFactory()
-        verification_code = user.verification_code
+@pytest.mark.django_db
+def test_verify_user(faker):
+    user = CustomUserFactory()
+    verification_code = user.verification_code
 
-        is_verified = verify_user(user=user, verification_code=verification_code)
+    is_verified = verify_user(user=user, verification_code=verification_code)
 
-        self.assertTrue(is_verified)
-        self.assertTrue(user.is_verified)
+    assert is_verified == True
+    assert user.is_verified == True

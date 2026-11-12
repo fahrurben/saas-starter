@@ -1,0 +1,14 @@
+[project]
+name = "saas-starter"
+version = "0.1.0"
+
+[tool.pytest]
+minversion = "9.0"
+DJANGO_SETTINGS_MODULE = "core.settings"
+addopts = ["-ra", "-q", "--strict-markers"]
+testpaths = ["tests", "integration"]
+pythonpath = ["apps"]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks integration tests",
+]
