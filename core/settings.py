@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -145,4 +146,11 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication"
     ),
     "EXCEPTION_HANDLER": "apps.common.exception_handlers.hacksoft_proposed_exception_handler",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=int(os.getenv("JWT_MAX_LIFETIME", 1))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        hours=int(os.getenv("JWT_REFRESH_MAX_LIFETIME", 1))
+    ),
 }

@@ -6,7 +6,7 @@ from django.db.utils import IntegrityError
 
 from apps.account.factories import CompanyFactory, CustomUserFactory
 from apps.account.models import CustomUser, GenderType
-from apps.account.services import register_company, verify_user
+from apps.account.services import invite_user, register_company, verify_user
 
 
 @pytest.mark.django_db
@@ -68,3 +68,19 @@ def test_verify_user(faker):
 
     assert is_verified == True
     assert user.is_verified == True
+
+
+@pytest.mark.django_db
+def test_invite_user(faker):
+    company = CompanyFactory.create()
+
+    user = invite_user(
+        email=faker.email(),
+        first_name=faker.first_name(),
+        last_name=faker.last_name(),
+        birthday=datetime.date(1990, 1, 1),
+        gender=GenderType.MALE,
+        company=company,
+    )
+
+    assert user.id is not None

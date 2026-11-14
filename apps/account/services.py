@@ -28,6 +28,19 @@ def send_templated_email(recipient_email, context_data):
     msg.send()
 
 
+def send_confirmation_email(recipient_email, context_data):
+    subject = "Welcome to Our Platform!"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to = [recipient_email]
+
+    html_content = render_to_string("emails/confirmation_email.html", context_data)
+    text_content = strip_tags(html_content)
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+    msg.attach_alternative(html_content, "text/html")
+
+    msg.send()
+
+
 @transaction.atomic
 def register_company(
     *,
@@ -107,6 +120,16 @@ def invite_user(
         company=company,
         gender=gender,
         birthday=birthday,
+    )
+
+    user_confirmation_url = reverse(
+        "apps:accounts:confirm-user",
+        query={"verification_code": user.verification_code},
+    )
+
+    send_confirmation_email(
+        user.email,
+        {"first_name": user.first_name, "verify_user_url": user_confirmation_url},
     )
 
     return user_profile

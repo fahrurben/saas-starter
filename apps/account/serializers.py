@@ -44,7 +44,7 @@ class CustomLoginSerializer(serializers.Serializer):
 
         # Pass the validated user object down to the view
         data["user"] = user
-        data["subdomain"] = company.subdomain
+        data["company_id"] = company.id
         return data
 
 
@@ -89,5 +89,48 @@ class RegisterSerializer(serializers.Serializer):
 
         if is_exist:
             raise serializers.ValidationError("Company name already exist")
+
+        return value
+
+
+class UserSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(max_length=255, read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "created_at",
+            "updated_at",
+        )
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = (
+            "id",
+            "company_id",
+            "birthday",
+            "gender",
+        )
+
+
+class InviteSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=True, max_length=100)
+    last_name = serializers.CharField(required=True, max_length=100)
+    birthday = serializers.DateField(required=True)
+    gender = serializers.ChoiceField(required=True, choices=GenderType.choices)
+
+    def validate_email(self, value):
+        company_id = self.context.get("company_id")
+        is_exist = UserProfile.objects.filter(user__email=value, company_id=company_id)
+
+        if is_exist:
+            raise serializers.ValidationError("Email already exist")
 
         return value
